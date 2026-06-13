@@ -18,7 +18,6 @@ static ssize_t read_source_file(const char *path, char *buf, size_t count)
     ssize_t ret;
     loff_t pos = 0;
     char *tmp_buf;
-    mm_segment_t old_fs;
 
     file = filp_open(path, O_RDONLY, 0);
     if (IS_ERR(file))
@@ -30,11 +29,8 @@ static ssize_t read_source_file(const char *path, char *buf, size_t count)
         return -ENOMEM;
     }
 
-    old_fs = get_fs();
-    set_fs(KERNEL_DS);
-    ret = file->f_op->read(file, tmp_buf, PAGE_SIZE - 1, &pos);
-    set_fs(old_fs);
-
+    ret = kernel_read(file, tmp_buf, PAGE_SIZE - 1, &pos);
+    
     if (ret >= 0) {
         tmp_buf[ret] = '\0';
         snprintf(buf, count, "%s", tmp_buf);
@@ -45,12 +41,16 @@ static ssize_t read_source_file(const char *path, char *buf, size_t count)
     return ret;
 }
 
-static ssize_t soh_show(struct class *cls, struct class_attribute *attr, char *buf)
+static ssize_t soh_show(const struct class *cls, 
+                        const struct class_attribute *attr, 
+                        char *buf)
 {
     return read_source_file(SRC_SOH, buf, PAGE_SIZE);
 }
 
-static ssize_t cycle_show(struct class *cls, struct class_attribute *attr, char *buf)
+static ssize_t cycle_show(const struct class *cls, 
+                          const struct class_attribute *attr, 
+                          char *buf)
 {
     return read_source_file(SRC_CYCLE, buf, PAGE_SIZE);
 }
@@ -62,7 +62,7 @@ static int __init fuelsummary_init(void)
 {
     int ret;
 
-    fuel_class = class_create(THIS_MODULE, "fuelsummary");
+    fuel_class = class_create("fuelsummary");
     if (IS_ERR(fuel_class))
         return PTR_ERR(fuel_class);
 
