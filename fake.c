@@ -1,45 +1,18 @@
 // SPDX-License-Identifier: GPL-2.0
-/*
- * Kernel Fake Enforcing State
- *
- * This provides a sysfs interface (/sys/selinux/fake) for user space
- * to read or set a "fake" enforcing state. This does not change the
- * real kernel enforcing mode.
- *
- * The value semantics:
- *   - 0: Use real enforcing state (default)
- *   - 1: Force return 1 (enforcing) for fake detection
- *
- * Note: This only affects the value returned by get_fake_enforcing(),
- *       not the actual SELinux enforcing state.
- */
-
 #include <linux/kobject.h>
 #include <linux/sysfs.h>
 #include <linux/init.h>
 #include <linux/export.h>
 #include <linux/err.h>
-#include <linux/slab.h>
 
 static int fake_enforcing = -1;
 static struct kobject *selinux_fake_kobj;
 
 int get_fake_enforcing(void)
 {
-    if (fake_enforcing == 1)
-        return 1;
-    return -1;
+    return fake_enforcing;
 }
 EXPORT_SYMBOL(get_fake_enforcing);
-
-void set_fake_enforcing(int val)
-{
-    if (val == 1)
-        fake_enforcing = 1;
-    else
-        fake_enforcing = -1;
-}
-EXPORT_SYMBOL(set_fake_enforcing);
 
 static ssize_t fake_show(struct kobject *kobj, struct kobj_attribute *attr,
                          char *buf)
@@ -57,15 +30,10 @@ static ssize_t fake_store(struct kobject *kobj, struct kobj_attribute *attr,
     if (ret)
         return ret;
 
-    if (val == 1) {
-        set_fake_enforcing(1);
-        pr_info("Fake: /sys/selinux/fake set to 1 (fake Enforcing)\n");
-    } else if (val == 0 || val == -1) {
-        set_fake_enforcing(0);
-        pr_info("Fake: /sys/selinux/fake set to real (fake disabled)\n");
-    } else {
-        return -EINVAL;
-    }
+    if (val == 1)
+        fake_enforcing = 1;
+    else
+        fake_enforcing = -1;
 
     return count;
 }
@@ -74,22 +42,11 @@ static struct kobj_attribute fake_attr = __ATTR(fake, 0644, fake_show, fake_stor
 
 static int __init fake_init(void)
 {
-    int ret;
-
     selinux_fake_kobj = kobject_create_and_add("selinux", kernel_kobj);
-    if (!selinux_fake_kobj) {
-        pr_err("Fake: failed to create selinux kobject\n");
+    if (!selinux_fake_kobj)
         return -ENOMEM;
-    }
 
-    ret = sysfs_create_file(selinux_fake_kobj, &fake_attr.attr);
-    if (ret) {
-        pr_err("Fake: failed to create fake sysfs file\n");
-        kobject_put(selinux_fake_kobj);
-        return ret;
-    }
-
-    pr_info("Fake: /sys/selinux/fake created (write 1=fake, 0=real)\n");
+    sysfs_create_file(selinux_fake_kobj, &fake_attr.attr);
     return 0;
 }
 early_initcall(fake_init);
