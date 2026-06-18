@@ -2,13 +2,16 @@
 /*
  * Kernel Fake Enforcing State
  *
- * This provides a sysfs interface (/sys/kernel/fake) for user space
+ * This provides a sysfs interface (/sys/selinux/fake) for user space
  * to read or set a "fake" enforcing state. This does not change the
- * real kernel state.
+ * real kernel enforcing mode.
  *
  * The value semantics:
  *   - 0: Use real enforcing state (default)
- *   - 1: Force return 1 (enforcing)
+ *   - 1: Force return 1 (enforcing) for fake detection
+ *
+ * Note: This only affects the value returned by get_fake_enforcing(),
+ *       not the actual SELinux enforcing state.
  */
 
 #include <linux/kobject.h>
@@ -16,9 +19,10 @@
 #include <linux/init.h>
 #include <linux/export.h>
 #include <linux/err.h>
+#include <linux/slab.h>
 
 static int fake_enforcing = 0;
-static struct kobject *fake_kobj;
+static struct kobject *selinux_fake_kobj;
 
 int get_fake_enforcing(void)
 {
@@ -46,8 +50,10 @@ static ssize_t fake_store(struct kobject *kobj, struct kobj_attribute *attr,
 
 	if (val == 1) {
 		fake_enforcing = 1;
+		pr_info("Fake: enforcing detection set to 1 (fake)\n");
 	} else if (val == 0) {
 		fake_enforcing = 0;
+		pr_info("Fake: enforcing detection set to 0 (real)\n");
 	} else {
 		return -EINVAL;
 	}
@@ -61,20 +67,20 @@ static int __init fake_init(void)
 {
 	int ret;
 
-	fake_kobj = kobject_create_and_add("fake", kernel_kobj);
-	if (!fake_kobj) {
-		pr_err("Fake: failed to create fake kobject\n");
+	selinux_fake_kobj = kobject_create_and_add("selinux", kernel_kobj);
+	if (!selinux_fake_kobj) {
+		pr_err("Fake: failed to create selinux kobject\n");
 		return -ENOMEM;
 	}
 
-	ret = sysfs_create_file(fake_kobj, &fake_attr.attr);
+	ret = sysfs_create_file(selinux_fake_kobj, &fake_attr.attr);
 	if (ret) {
 		pr_err("Fake: failed to create fake sysfs file\n");
-		kobject_put(fake_kobj);
+		kobject_put(selinux_fake_kobj);
 		return ret;
 	}
 
-	pr_info("Fake: /sys/kernel/fake created (0=real, 1=fake)\n");
+	pr_info("Fake: /sys/selinux/fake created (0=real, 1=fake)\n");
 	return 0;
 }
-device_initcall(fake_init);
+early_initcall(fake_init);
