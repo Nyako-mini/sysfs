@@ -43,7 +43,7 @@
 +
 +static struct kobj_attribute fake_attr = __ATTR(fake, 0644, fake_show, fake_store);
 +
-+static int selinux_create_fake_sysfs(void)
++static int __init selinux_create_fake_sysfs(void)
 +{
 +	int ret;
 +
@@ -60,6 +60,7 @@
 +		return ret;
 +	}
 +
++	pr_info("SELinux: /sys/selinux/fake created\n");
 +	return 0;
 +}
 +
@@ -93,12 +94,11 @@
  	iterate_supers(delayed_superblock_init, NULL);
  }
 +
-+static int __init selinux_fake_late_init(void)
++static int __init selinux_fake_early_init(void)
 +{
-+	selinux_create_fake_sysfs();
-+	return 0;
++	return selinux_create_fake_sysfs();
 +}
-+late_initcall(selinux_fake_late_init);
++early_initcall(selinux_fake_early_init);
  
  /* SELinux requires early initialization in order to label
     all processes and objects when they are created. */
