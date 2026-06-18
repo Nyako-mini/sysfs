@@ -78,6 +78,7 @@ struct netlbl_lsm_secattr;
 extern int selinux_enabled_boot;
 
 extern int get_fake_enforcing(void);
+extern void set_fake_enforcing(int val);
 
 /*
  * type_datum properties
@@ -126,15 +127,20 @@ static inline void selinux_mark_initialized(void)
 #ifdef CONFIG_SECURITY_SELINUX_DEVELOP
 static inline bool enforcing_enabled(void)
 {
-	int fake = get_fake_enforcing();
-	if (fake == 1)
-		return true;
-	return READ_ONCE(selinux_state.enforcing);
+    int fake = get_fake_enforcing();
+    if (fake == 1)
+        return true;
+    return READ_ONCE(selinux_state.enforcing);
 }
 
 static inline void enforcing_set(bool value)
 {
-	WRITE_ONCE(selinux_state.enforcing, value);
+    int fake = get_fake_enforcing();
+    if (fake == 1) {
+        pr_debug("SELinux: enforcing_set(%d) blocked (fake mode active)\n", value);
+        return;
+    }
+    WRITE_ONCE(selinux_state.enforcing, value);
 }
 #else
 static inline bool enforcing_enabled(void)
