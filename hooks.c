@@ -7378,9 +7378,6 @@ static __init int selinux_init(void)
 	mutex_init(&selinux_state.status_lock);
 	mutex_init(&selinux_state.policy_mutex);
 
-	/* Create fake SELinux state interface */
-	selinux_create_fake_sysfs();
-
 	/* Set the security state for the initial task. */
 	cred_init_security();
 
@@ -7512,5 +7509,8 @@ static int __init selinux_nf_ip_init(void)
 
 	return 0;
 }
+
+early_initcall(selinux_create_fake_sysfs);
+
 __initcall(selinux_nf_ip_init);
 #endif /* CONFIG_NETFILTER */
