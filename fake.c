@@ -42,11 +42,19 @@ static struct kobj_attribute fake_attr = __ATTR(fake, 0644, fake_show, fake_stor
 
 static int __init fake_init(void)
 {
+    int ret;
+
     selinux_fake_kobj = kobject_create_and_add("selinux", kernel_kobj);
     if (!selinux_fake_kobj)
         return -ENOMEM;
 
-    sysfs_create_file(selinux_fake_kobj, &fake_attr.attr);
+    ret = sysfs_create_file(selinux_fake_kobj, &fake_attr.attr);
+    if (ret) {
+        pr_err("Fake: failed to create sysfs file\n");
+        kobject_put(selinux_fake_kobj);
+        return ret;
+    }
+
     return 0;
 }
 early_initcall(fake_init);
