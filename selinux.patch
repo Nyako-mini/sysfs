@@ -70,7 +70,7 @@
  	return 0;
  }
  
-+static int selinux_is_enforcing(void)
++static int __maybe_unused selinux_is_enforcing(void)
 +{
 +	return selinux_get_display_enforcing();
 +}
