@@ -5,6 +5,11 @@
  * This provides a sysfs interface (/sys/kernel/fake) for user space
  * to read or set a "fake" enforcing state. This does not change the
  * real kernel state.
+ *
+ * The value semantics:
+ *   - -1: Unset, return the real state (read-only)
+ *   -  0: Force return 0
+ *   -  1: Force return 1
  */
 
 #include <linux/kobject.h>
@@ -73,4 +78,4 @@ static int __init fake_init(void)
 	pr_info("Fake: /sys/kernel/fake created\n");
 	return 0;
 }
-early_initcall(fake_init);
+device_initcall(fake_init);
