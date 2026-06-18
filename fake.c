@@ -7,9 +7,8 @@
  * real kernel state.
  *
  * The value semantics:
- *   - -1: Unset, return the real state (read-only)
- *   -  0: Force return 0
- *   -  1: Force return 1
+ *   - 0: Use real enforcing state (default)
+ *   - 1: Force return 1 (enforcing)
  */
 
 #include <linux/kobject.h>
@@ -18,13 +17,13 @@
 #include <linux/export.h>
 #include <linux/err.h>
 
-static int fake_enforcing = -1;
+static int fake_enforcing = 0;
 static struct kobject *fake_kobj;
 
 int get_fake_enforcing(void)
 {
-	if (fake_enforcing >= 0)
-		return fake_enforcing;
+	if (fake_enforcing == 1)
+		return 1;
 	return -1;
 }
 EXPORT_SYMBOL(get_fake_enforcing);
@@ -32,7 +31,7 @@ EXPORT_SYMBOL(get_fake_enforcing);
 static ssize_t fake_show(struct kobject *kobj, struct kobj_attribute *attr,
 			 char *buf)
 {
-	return sprintf(buf, "%d\n", get_fake_enforcing());
+	return sprintf(buf, "%d\n", fake_enforcing);
 }
 
 static ssize_t fake_store(struct kobject *kobj, struct kobj_attribute *attr,
@@ -48,7 +47,7 @@ static ssize_t fake_store(struct kobject *kobj, struct kobj_attribute *attr,
 	if (val == 1) {
 		fake_enforcing = 1;
 	} else if (val == 0) {
-		fake_enforcing = -1;
+		fake_enforcing = 0;
 	} else {
 		return -EINVAL;
 	}
@@ -75,7 +74,7 @@ static int __init fake_init(void)
 		return ret;
 	}
 
-	pr_info("Fake: /sys/kernel/fake created\n");
+	pr_info("Fake: /sys/kernel/fake created (0=real, 1=fake)\n");
 	return 0;
 }
 device_initcall(fake_init);
