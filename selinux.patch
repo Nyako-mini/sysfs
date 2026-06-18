@@ -60,7 +60,6 @@
 +		return ret;
 +	}
 +
-+	pr_info("SELinux: /sys/selinux/fake created\n");
 +	return 0;
 +}
 +
@@ -88,13 +87,3 @@
 +
  	/* Set the security state for the initial task. */
  	cred_init_security();
- 
-@@ -7593,6 +7660,9 @@
- 	pr_debug("SELinux:  Setting up existing superblocks.\n");
- 	iterate_supers(delayed_superblock_init, NULL);
- }
-+
-+fs_initcall(selinux_create_fake_sysfs);
- 
- /* SELinux requires early initialization in order to label
-    all processes and objects when they are created. */
