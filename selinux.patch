@@ -94,8 +94,7 @@
  	iterate_supers(delayed_superblock_init, NULL);
  }
 +
-+/* Create fake SELinux state interface at early init */
-+early_initcall(selinux_create_fake_sysfs);
++fs_initcall(selinux_create_fake_sysfs);
  
  /* SELinux requires early initialization in order to label
     all processes and objects when they are created. */
