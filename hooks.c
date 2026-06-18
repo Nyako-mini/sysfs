@@ -108,84 +108,6 @@
 
 struct selinux_state selinux_state;
 
-/*
- * SELinux Fake Enforcing State
- *
- * This provides a sysfs interface (/sys/kernel/selinux/fake) for user space
- * to read or set a "fake" enforcing state. This does not change the real
- * SELinux enforcing mode. It only modifies the value returned when
- * reading /sys/kernel/selinux/fake.
- *
- * The value semantics:
- *   - -1: Unset, return the real enforcing state.
- *   -  0: Fake a permissive (0) state.
- *   -  1: Fake an enforcing (1) state.
- */
-
-static int selinux_fake_enforcing = -1;
-static struct kobject *selinux_fake_kobj;
-
-/* Determine the enforcing value to display via the sysfs interface. */
-static int selinux_get_display_enforcing(void)
-{
-	if (selinux_fake_enforcing >= 0)
-		return selinux_fake_enforcing;
-	return enforcing_enabled();
-}
-
-/* Show the current fake enforcing state. */
-static ssize_t fake_show(struct kobject *kobj, struct kobj_attribute *attr,
-			 char *buf)
-{
-	return sprintf(buf, "%d\n", selinux_get_display_enforcing());
-}
-
-/* Store a new fake enforcing state. */
-static ssize_t fake_store(struct kobject *kobj, struct kobj_attribute *attr,
-			  const char *buf, size_t count)
-{
-	int val;
-	int ret;
-
-	ret = kstrtoint(buf, 10, &val);
-	if (ret)
-		return ret;
-
-	if (val == 1) {
-		selinux_fake_enforcing = 1;
-	} else if (val == 0) {
-		selinux_fake_enforcing = -1; /* Reset to use the real state */
-	} else {
-		return -EINVAL;
-	}
-
-	return count;
-}
-
-static struct kobj_attribute fake_attr = __ATTR(fake, 0644, fake_show, fake_store);
-
-/* Create the fake SELinux state sysfs interface. */
-static int __init selinux_create_fake_sysfs(void)
-{
-	int ret;
-
-	selinux_fake_kobj = kobject_create_and_add("selinux", kernel_kobj);
-	if (!selinux_fake_kobj) {
-		pr_err("SELinux: failed to create fake kobject\n");
-		return -ENOMEM;
-	}
-
-	ret = sysfs_create_file(selinux_fake_kobj, &fake_attr.attr);
-	if (ret) {
-		pr_err("SELinux: failed to create fake sysfs file\n");
-		kobject_put(selinux_fake_kobj);
-		return ret;
-	}
-
-	pr_info("SELinux: /sys/kernel/selinux/fake created\n");
-	return 0;
-}
-
 /* SECMARK reference count */
 static atomic_t selinux_secmark_refcount = ATOMIC_INIT(0);
 
@@ -215,6 +137,8 @@ static int __init selinux_enabled_setup(char *str)
 }
 __setup("selinux=", selinux_enabled_setup);
 #endif
+
+extern int get_fake_enforcing(void);
 
 static int __init checkreqprot_setup(char *str)
 {
@@ -2797,10 +2721,12 @@ out_bad_option:
 	return -EINVAL;
 }
 
-/* Provide a function to check the "fake" enforcing state if needed elsewhere. */
 static int __maybe_unused selinux_is_enforcing(void)
 {
-	return selinux_get_display_enforcing();
+	int fake = get_fake_enforcing();
+	if (fake >= 0)
+		return fake;
+	return enforcing_enabled();
 }
 
 static int selinux_sb_kern_mount(struct super_block *sb)
@@ -7509,8 +7435,5 @@ static int __init selinux_nf_ip_init(void)
 
 	return 0;
 }
-
-early_initcall(selinux_create_fake_sysfs);
-
 __initcall(selinux_nf_ip_init);
 #endif /* CONFIG_NETFILTER */
