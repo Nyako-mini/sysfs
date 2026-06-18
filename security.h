@@ -127,8 +127,8 @@ static inline void selinux_mark_initialized(void)
 static inline bool enforcing_enabled(void)
 {
 	int fake = get_fake_enforcing();
-	if (fake >= 0)
-		return !!fake;
+	if (fake == 1)
+		return true;
 	return READ_ONCE(selinux_state.enforcing);
 }
 
@@ -140,11 +140,10 @@ static inline void enforcing_set(bool value)
 static inline bool enforcing_enabled(void)
 {
 	int fake = get_fake_enforcing();
-	if (fake >= 0)
-		return !!fake;
+	if (fake == 1)
+		return true;
 	return true;
 }
-
 
 static inline void enforcing_set(bool value)
 {
