@@ -4,8 +4,8 @@
  
  #define NUM_SEL_MNT_OPTS 6
  
-+static int selinux_fake_enforcing __used = -1;
-+static struct kobject *selinux_fake_kobj __used;
++static int selinux_fake_enforcing = -1;
++static struct kobject *selinux_fake_kobj;
 +
 +static int selinux_get_display_enforcing(void)
 +{
@@ -43,7 +43,7 @@
 +
 +static struct kobj_attribute fake_attr = __ATTR(fake, 0644, fake_show, fake_store);
 +
-+static int selinux_create_fake_sysfs(void)
++static int __init selinux_create_fake_sysfs(void)
 +{
 +	int ret;
 +
@@ -94,6 +94,7 @@
  	iterate_supers(delayed_superblock_init, NULL);
  }
 +
++/* Create fake SELinux state interface at early init */
 +early_initcall(selinux_create_fake_sysfs);
  
  /* SELinux requires early initialization in order to label
